@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using ConnectionRevitCloud.Server.Models;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,8 +71,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => "ConnectionRevitCloud server is running.");
-
-record LoginReq(string Username, string Password);
 
 // Client login
 app.MapPost("/api/v1/login", async (LoginReq req, AuthService auth) =>
