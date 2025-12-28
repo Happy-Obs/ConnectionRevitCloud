@@ -13,7 +13,7 @@ CERT_DIR="$APP_ROOT/certs"
 DATA_DIR="$APP_ROOT/data"
 CONFIGS_DIR="$APP_ROOT/configs"
 DOWNLOADS_DIR="$APP_ROOT/downloads"
-SETTINGS_PATH="$APP_ROOT/appsettings.Production.json"
+SETTINGS_PATH="$APP_DIR/appsettings.Production.json"
 SERVICE_PATH="/etc/systemd/system/connectionrevitcloud.service"
 
 prompt() {
