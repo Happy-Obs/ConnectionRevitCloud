@@ -8,10 +8,10 @@ namespace ConnectionRevitCloud.Client.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     // === Настройки (позже вынесем в config.json) ===
-    private const string BaseUrl = "https://87.242.103.223";
+    private const string BaseUrl = "https://92.51.22.225";
     private const string TunnelName = "ConnectionRevitCloud";
     // Пока пусто: после установки сервера возьмёшь SHA256 fingerprint и вставим сюда.
-    private const string PinnedCertSha256 = "";
+    private const string PinnedCertSha256 = "1CE775DF24128FA05ABC334824148170B51EB054CBF4A59A677A29DD98F3C3E6";
 
     private readonly ApiClient _api;
     private readonly WireGuardWindowsService _wg;
