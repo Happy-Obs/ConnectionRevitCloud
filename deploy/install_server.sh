@@ -16,6 +16,11 @@ DOWNLOADS_DIR="$APP_ROOT/downloads"
 SETTINGS_PATH="$APP_DIR/appsettings.Production.json"
 SERVICE_PATH="/etc/systemd/system/connectionrevitcloud.service"
 
+# NEW: secrets dir to persist secrets across installs
+SECRETS_DIR="$APP_ROOT/secrets"
+JWT_KEY_FILE="$SECRETS_DIR/jwt_key.txt"
+PFX_PASS_FILE="$SECRETS_DIR/pfx_password.txt"
+
 prompt() {
   local var="$1"
   local text="$2"
@@ -58,25 +63,53 @@ fi
 
 echo
 echo "Создание директорий в $APP_ROOT ..."
-mkdir -p "$APP_DIR" "$CERT_DIR" "$DATA_DIR" "$CONFIGS_DIR" "$DOWNLOADS_DIR"
+mkdir -p "$APP_DIR" "$CERT_DIR" "$DATA_DIR" "$CONFIGS_DIR" "$DOWNLOADS_DIR" "$SECRETS_DIR"
+chmod 700 "$SECRETS_DIR"
 
+# -------------------------
+# STABLE JWT KEY
+# -------------------------
 echo
-echo "Генерация JWT ключа..."
-JWT_KEY="$(openssl rand -base64 48 | tr -d '\n')"
+echo "JWT ключ..."
+if [[ -f "$JWT_KEY_FILE" ]]; then
+  JWT_KEY="$(cat "$JWT_KEY_FILE")"
+  echo "JWT ключ уже существует, используем текущий."
+else
+  echo "Генерация JWT ключа..."
+  JWT_KEY="$(openssl rand -base64 48 | tr -d '\n')"
+  echo "$JWT_KEY" > "$JWT_KEY_FILE"
+  chmod 600 "$JWT_KEY_FILE"
+fi
 
+# -------------------------
+# STABLE PFX PASSWORD
+# -------------------------
 echo
-echo "Генерация пароля PFX..."
-PFX_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+echo "Пароль PFX..."
+if [[ -f "$PFX_PASS_FILE" ]]; then
+  PFX_PASSWORD="$(cat "$PFX_PASS_FILE")"
+  echo "Пароль PFX уже существует, используем текущий."
+else
+  echo "Генерация пароля PFX..."
+  PFX_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
+  echo "$PFX_PASSWORD" > "$PFX_PASS_FILE"
+  chmod 600 "$PFX_PASS_FILE"
+fi
 
+# -------------------------
+# CERTIFICATE (do not regen if exists)
+# -------------------------
 echo
-echo "Генерация self-signed сертификата на IP: $VPS_IP ..."
 CRT_PATH="$CERT_DIR/server.crt"
 KEY_PATH="$CERT_DIR/server.key"
 PFX_PATH="$CERT_DIR/server.pfx"
+
 if [[ -f "$PFX_PATH" && -f "$CRT_PATH" && -f "$KEY_PATH" ]]; then
   echo "Сертификат уже существует, пропускаем генерацию: $CRT_PATH"
 else
   echo "Генерация self-signed сертификата на IP: $VPS_IP ..."
+  rm -f "$PFX_PATH" "$CRT_PATH" "$KEY_PATH"
+
   openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
     -keyout "$KEY_PATH" -out "$CRT_PATH" \
     -subj "/CN=ConnectionRevitCloud" \
@@ -85,10 +118,14 @@ else
   openssl pkcs12 -export -out "$PFX_PATH" -inkey "$KEY_PATH" -in "$CRT_PATH" -password "pass:$PFX_PASSWORD"
   chmod 600 "$PFX_PATH" "$KEY_PATH" "$CRT_PATH"
 fi
+
 echo
 echo "SHA-256 fingerprint сертификата (нужно для pinning в клиенте):"
 openssl x509 -in "$CRT_PATH" -noout -fingerprint -sha256
 
+# -------------------------
+# appsettings generation (in APP_DIR)
+# -------------------------
 echo
 echo "Генерация appsettings.Production.json ..."
 TEMPLATE="$REPO_DIR/deploy/appsettings.template.json"
