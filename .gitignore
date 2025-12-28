@@ -1,0 +1,29 @@
+
+---
+
+### .gitignore
+```gitignore
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider/VSCode
+.idea/
+.vscode/
+
+# Publish
+client/publish/
+server/publish/
+
+# Local secrets
+**/appsettings.Production.json
+**/*.pfx
+**/*.key
+**/*.crt
+
+# Inno output
+installer/Output/

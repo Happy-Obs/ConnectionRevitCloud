@@ -1,0 +1,40 @@
+<Window x:Class="ConnectionRevitCloud.Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ConnectionRevitCloud"
+        Width="520" Height="360"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="ConnectionRevitCloud" FontSize="22" FontWeight="SemiBold"/>
+
+        <StackPanel Grid.Row="1" Margin="0,16,0,0">
+            <TextBlock Text="Логин"/>
+            <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Height="28"/>
+            <TextBlock Text="Пароль" Margin="0,10,0,0"/>
+            <PasswordBox x:Name="Pwd" Height="28"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,16,0,0">
+            <Button Content="Подключить" Width="120" Height="32" Click="Connect_Click"/>
+            <Button Content="Отключить" Width="120" Height="32" Margin="10,0,0,0" Click="Disconnect_Click"/>
+            <Button Content="Свернуть в трей" Width="140" Height="32" Margin="10,0,0,0" Click="Hide_Click"/>
+        </StackPanel>
+
+        <Border Grid.Row="3" Margin="0,16,0,0" Padding="12" BorderBrush="#DDD" BorderThickness="1" CornerRadius="10">
+            <StackPanel>
+                <TextBlock Text="{Binding StatusLine}" FontSize="14" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding DetailsLine}" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding TrafficLine}" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding PingLine}" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding UpdateLine}" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

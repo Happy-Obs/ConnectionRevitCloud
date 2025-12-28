@@ -1,0 +1,15 @@
+[Unit]
+Description=ConnectionRevitCloud Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/connectionrevitcloud/app
+ExecStart=/opt/connectionrevitcloud/app/ConnectionRevitCloud.Server
+Restart=always
+RestartSec=3
+Environment=ASPNETCORE_ENVIRONMENT=Production
+User=root
+
+[Install]
+WantedBy=multi-user.target
