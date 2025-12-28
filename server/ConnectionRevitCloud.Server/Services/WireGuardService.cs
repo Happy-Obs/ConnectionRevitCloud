@@ -3,6 +3,9 @@ using System.Text;
 using ConnectionRevitCloud.Server.Data;
 using ConnectionRevitCloud.Server.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+private const string Bash = "/bin/bash";
+private const string Wg = "/usr/bin/wg";
+private const string WgQuick = "/usr/bin/wg-quick";
 
 namespace ConnectionRevitCloud.Server.Services;
 
@@ -25,15 +28,15 @@ public class WireGuardService
         return await File.ReadAllTextAsync(u.ConfigPath, Encoding.UTF8);
     }
 
-    public async Task CreateUserWithGeneratedConfig(string username, string password, string wgip)
+    public async Task CreateUserWithGeneratedConfig(string username, string password, string Wgip)
     {
         // 1) ключи клиента
-        var clientPriv = RunAndCapture("wg", "genkey").Trim();
-        var clientPub = RunAndCapture("bash", $"-lc \"echo '{clientPriv}' | wg pubkey\"").Trim();
+        var clientPriv = RunAndCapture("Wg", "genkey").Trim();
+        var clientPub = RunAndCapture("Bash", $"-lc \"echo '{clientPriv}' | Wg pubkey\"").Trim();
 
         // 2) public key сервера
         var iface = _cfg["WireGuard:Interface"] ?? "wg0";
-        var serverPub = RunAndCapture("wg", $"show {iface} public-key").Trim();
+        var serverPub = RunAndCapture("Wg", $"show {iface} public-key").Trim();
 
         // 3) шаблон клиента (как у тебя)
         var endpointHost = _cfg["WireGuard:EndpointHost"] ?? "87.242.103.223";
@@ -43,7 +46,7 @@ public class WireGuardService
 
         var clientCfg = $@"[Interface]
 PrivateKey = {clientPriv}
-Address = {wgip}/32
+Address = {Wgip}/32
 
 [Peer]
 PublicKey = {serverPub}
@@ -52,14 +55,25 @@ Endpoint = {endpointHost}:{endpointPort}
 PersistentKeepalive = {keepalive}
 ";
 
-        // 4) сохранить конфиг
-        var dir = _cfg["WireGuard:ClientConfigsDir"] ?? "/opt/connectionrevitcloud/configs";
-        Directory.CreateDirectory(dir);
-        var clientConfigPath = Path.Combine(dir, $"{username}.conf");
-        await File.WriteAllTextAsync(clientConfigPath, clientCfg, Encoding.UTF8);
+        // 4) сохранить конфиг и ключи в /root/Wg-clients/<username>/
+	var baseDir = _cfg["WireGuard:ClientConfigsDir"] ?? "/root/Wg-clients";
+	var userDir = Path.Combine(baseDir, username);
+	Directory.CreateDirectory(userDir);
+
+	var privPath = Path.Combine(userDir, $"{username}.private.key");
+	var pubPath  = Path.Combine(userDir, $"{username}.public.key");
+	var confPath = Path.Combine(userDir, $"{username}.conf");
+
+	await File.WriteAllTextAsync(privPath, clientPriv + "\n", Encoding.UTF8);
+	await File.WriteAllTextAsync(pubPath, clientPub + "\n", Encoding.UTF8);
+	await File.WriteAllTextAsync(confPath, clientCfg, Encoding.UTF8);
+
+	// далее используем confPath как ConfigPath
+	var clientConfigPath = confPath;
+
 
         // 5) добавить peer в wg0.conf
-        AddPeerToServerConfig(clientPub, $"{wgip}/32");
+        AddPeerToServerConfig(clientPub, $"{Wgip}/32");
 
         // 6) применить без даунтайма
         ApplyServerConfigNoDowntime();
@@ -70,7 +84,7 @@ PersistentKeepalive = {keepalive}
         {
             Username = username,
             PasswordHash = hash,
-            WgIp = wgip,
+            WgIp = Wgip,
             ConfigPath = clientConfigPath,
             IsEnabled = true
         };
@@ -91,7 +105,12 @@ PersistentKeepalive = {keepalive}
 
         if (!deleteConfigAndPeer) return;
 
-        if (File.Exists(cfgPath)) File.Delete(cfgPath);
+        // cfgPath = /root/Wg-clients/<user>/<user>.conf
+	var dir = Path.GetDirectoryName(cfgPath);
+	if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+    		Directory.Delete(dir, recursive: true);
+	else if (File.Exists(cfgPath))
+    		File.Delete(cfgPath);
 
         RemovePeerFromServerConfigByAllowedIp(allowedIp);
         ApplyServerConfigNoDowntime();
@@ -157,7 +176,7 @@ AllowedIPs = {allowedIpCidr}
     private void ApplyServerConfigNoDowntime()
     {
         var iface = _cfg["WireGuard:Interface"] ?? "wg0";
-        RunAndCapture("bash", $"-lc \"wg syncconf {iface} <(wg-quick strip {iface})\"");
+        RunAndCapture("Bash", $"-lc \"Wg syncconf {iface} <(WgQuick strip {iface})\"");
     }
 
     private static string RunAndCapture(string file, string args)
