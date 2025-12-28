@@ -73,15 +73,18 @@ echo "Генерация self-signed сертификата на IP: $VPS_IP ...
 CRT_PATH="$CERT_DIR/server.crt"
 KEY_PATH="$CERT_DIR/server.key"
 PFX_PATH="$CERT_DIR/server.pfx"
+if [[ -f "$PFX_PATH" && -f "$CRT_PATH" && -f "$KEY_PATH" ]]; then
+  echo "Сертификат уже существует, пропускаем генерацию: $CRT_PATH"
+else
+  echo "Генерация self-signed сертификата на IP: $VPS_IP ..."
+  openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
+    -keyout "$KEY_PATH" -out "$CRT_PATH" \
+    -subj "/CN=ConnectionRevitCloud" \
+    -addext "subjectAltName=IP:$VPS_IP"
 
-openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout "$KEY_PATH" -out "$CRT_PATH" \
-  -subj "/CN=ConnectionRevitCloud" \
-  -addext "subjectAltName=IP:$VPS_IP"
-
-openssl pkcs12 -export -out "$PFX_PATH" -inkey "$KEY_PATH" -in "$CRT_PATH" -password "pass:$PFX_PASSWORD"
-chmod 600 "$PFX_PATH" "$KEY_PATH" "$CRT_PATH"
-
+  openssl pkcs12 -export -out "$PFX_PATH" -inkey "$KEY_PATH" -in "$CRT_PATH" -password "pass:$PFX_PASSWORD"
+  chmod 600 "$PFX_PATH" "$KEY_PATH" "$CRT_PATH"
+fi
 echo
 echo "SHA-256 fingerprint сертификата (нужно для pinning в клиенте):"
 openssl x509 -in "$CRT_PATH" -noout -fingerprint -sha256
